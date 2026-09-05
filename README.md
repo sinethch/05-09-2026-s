@@ -22,19 +22,19 @@ A production-grade full-stack MERN (MongoDB, Express, React, Node.js) applicatio
                                 │ Automated SSH Deployment
                                 ▼
  ┌─────────────────────────────────────────────────────────────┐
- │           Remote Ubuntu Server (167.172.77.230)             │
+ │               Remote Server (<SERVER_HOST>)                 │
  │                                                             │
- │  Path: /var/www/Sineth-Test/05-09-2026-s/04-09-2026-s       │
+ │  Path: <DEPLOY_PATH>                                        │
  │                                                             │
  │  ┌───────────────────────────────────────────────────────┐  │
- │  │        NGINX Production Container (Port 5173:80)      │  │
+ │  │        NGINX Production Container (Port Mapping)      │  │
  │  │  - Serves compiled React assets with Gzip & Caching  │  │
  │  │  - SPA client routing (try_files $uri /index.html)   │  │
  │  │  - Reverse proxies /api/ requests to Backend (no CORS)│  │
  │  └──────────────────────────┬────────────────────────────┘  │
  │                             ▼                               │
  │  ┌───────────────────────────────────────────────────────┐  │
- │  │         Express.js Backend Container (Port 5050:5000) │  │
+ │  │         Express.js Backend Container                  │  │
  │  └──────────────────────────┬────────────────────────────┘  │
  │                             ▼                               │
  │  ┌───────────────────────────────────────────────────────┐  │
@@ -45,39 +45,41 @@ A production-grade full-stack MERN (MongoDB, Express, React, Node.js) applicatio
 
 ---
 
-## 🔄 Zero-Touch "Push-to-Deploy" CI/CD (Way 2)
+## 🔄 Zero-Touch "Push-to-Deploy" CI/CD
 
 Whenever changes are pushed to `main`, GitHub Actions automatically:
 1. Validates tests and builds both frontend and backend.
 2. Builds and publishes Docker images to **GitHub Container Registry (`ghcr.io`)**.
-3. Opens a secure SSH session to the remote server (`167.172.77.230`).
+3. Opens a secure SSH session to the remote server.
 4. Pulls the new images and executes a seamless container restart with zero manual intervention.
 
 ### Required GitHub Secrets Configuration
 To enable automated push-to-deploy, configure the following secrets under **Settings > Secrets and variables > Actions** in your GitHub repository:
 
-| Secret Name | Description | Example / Value |
+| Secret Name | Description | Example / Placeholder |
 | :--- | :--- | :--- |
-| `SSH_HOST` | Remote server IP address | `167.172.77.230` |
-| `SSH_USER` | Server SSH username | `root` |
+| `SSH_HOST` | Remote server hostname or IP | `<YOUR_SERVER_HOST>` |
+| `SSH_USER` | Server SSH username | `<DEPLOY_USER>` |
 | `SSH_KEY` | Private SSH key for server access | OpenSSH Private Key (`-----BEGIN OPENSSH PRIVATE KEY-----...`) |
-| `DEPLOY_PATH` | Directory where compose file lives | `/var/www/Sineth-Test/05-09-2026-s/04-09-2026-s` |
+| `DEPLOY_PATH` | Directory where compose file lives | `<YOUR_DEPLOY_PATH>` |
 
 ---
 
 ## ⚙️ Server Configuration (`.env`)
 
-On the remote server (`/var/www/Sineth-Test/05-09-2026-s/04-09-2026-s`), create the production `.env` file:
+On the remote server in `<DEPLOY_PATH>`, create the production `.env` file using your desired host and port configurations:
 
 ```bash
 cat << 'EOF' > .env
 NODE_ENV=production
 PORT=5000
 MONGO_URI=mongodb://mongodb:27017/ecommerce
-CLIENT_URL=http://167.172.77.230:5173
+CLIENT_URL=http://<YOUR_SERVER_HOST>:<FRONTEND_PORT>
 VITE_API_BASE_URL=/api
-FRONTEND_IMAGE=ghcr.io/sinethch/05-09-2026-s/frontend:main-latest
-BACKEND_IMAGE=ghcr.io/sinethch/05-09-2026-s/backend:main-latest
+FRONTEND_IMAGE=ghcr.io/<OWNER>/<REPO>/frontend:main-latest
+BACKEND_IMAGE=ghcr.io/<OWNER>/<REPO>/backend:main-latest
+FRONTEND_PORT=<FRONTEND_PORT>
+BACKEND_PORT=<BACKEND_PORT>
 EOF
 ```
 
@@ -133,7 +135,6 @@ cd backend
 npm install
 npm run dev
 ```
-Backend runs on `http://localhost:5000`.
 
 ### 4. Run Frontend (Dev)
 ```bash
@@ -141,19 +142,17 @@ cd frontend
 npm install
 npm run dev
 ```
-Frontend development server runs on `http://localhost:5173`.
 
 ### 5. Run Full Stack locally with Docker
 ```bash
 docker compose up -d --build
 ```
-Access UI at `http://localhost:5173` (served by Nginx).
 
 ---
 
-## 🔍 Live Application Verification
+## 🔍 Application Health Verification
 
-- **Frontend UI (Nginx)**: [`http://167.172.77.230:5173/`](http://167.172.77.230:5173/)
-- **API Health Check**: [`http://167.172.77.230:5173/api/health`](http://167.172.77.230:5173/api/health)
+- **Frontend UI (Nginx)**: `http://<YOUR_SERVER_HOST>:<FRONTEND_PORT>/`
+- **API Health Check**: `http://<YOUR_SERVER_HOST>:<FRONTEND_PORT>/api/health`
 
 For additional setup and multi-environment details, see the [CI/CD Guide](docs/CI_CD_GUIDE.md).

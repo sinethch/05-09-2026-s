@@ -70,55 +70,56 @@ Runs on push/PR and daily at 02:00 UTC:
 
 ---
 
-## 5. Remote Server Deployment Guide (`167.172.77.230`)
+## 5. Remote Server Deployment Guide
 
-To deploy or upgrade your existing deployment on the remote server (`167.172.77.230`):
+To deploy or upgrade your existing deployment on your remote server:
 
 ### Step 1: Connect to the Remote Server
 Open your terminal and SSH into your server:
 ```bash
-ssh <username>@167.172.77.230
+ssh <username>@<YOUR_SERVER_HOST>
 ```
 
 ### Step 2: Navigate to the Project Directory
 ```bash
-cd ~/ecommerce   # or your designated project directory
+cd <DEPLOY_PATH>
 ```
 
-### Step 3: Pull Latest Changes or Update Source Code
+### Step 3: Update Source Files or Compose Configuration
 If using git on the server:
 ```bash
 git pull origin main
 ```
-*(Or transfer the updated files from your local workspace using `scp` / `rsync`)*
+*(Or if using pre-built images with Zero-Touch CD, only `docker-compose.deploy.yml` and `.env` are needed).*
 
 ### Step 4: Verify Environment File (`.env`)
-Ensure your environment file contains the server's public IP:
+Ensure your environment file contains your server configuration:
 ```bash
 cat << 'EOF' > .env
 NODE_ENV=production
 PORT=5000
 MONGO_URI=mongodb://mongodb:27017/ecommerce
-CLIENT_URL=http://167.172.77.230:5173,http://167.172.77.230
+CLIENT_URL=http://<YOUR_SERVER_HOST>:<FRONTEND_PORT>
 VITE_API_BASE_URL=/api
+FRONTEND_IMAGE=ghcr.io/<OWNER>/<REPO>/frontend:main-latest
+BACKEND_IMAGE=ghcr.io/<OWNER>/<REPO>/backend:main-latest
 EOF
 ```
 
-### Step 5: Build and Restart Services with Nginx
+### Step 5: Build or Pull and Restart Services with Nginx
 Run Docker Compose with the deploy configuration:
 ```bash
-# Stop old containers (e.g. old Vite dev server)
-docker compose -f docker-compose.deploy.yml down
+# Pull latest container images
+docker compose -f docker-compose.deploy.yml pull
 
-# Rebuild and start services in background
-docker compose -f docker-compose.deploy.yml up -d --build
+# Start services in background
+docker compose -f docker-compose.deploy.yml up -d --remove-orphans
 ```
 
 ### Step 6: Verify Firewall Rules
-Ensure ports 80 and 5173 are open if UFW firewall is active:
+Ensure your designated application ports are permitted:
 ```bash
-sudo ufw allow 80/tcp
-sudo ufw allow 5173/tcp
+sudo ufw allow <FRONTEND_PORT>/tcp
 sudo ufw status
 ```
 
@@ -129,14 +130,12 @@ Check running containers and test connectivity:
 docker compose -f docker-compose.deploy.yml ps
 
 # Test Nginx HTTP response locally on server
-curl -I http://localhost:80
-curl -I http://localhost:5173
+curl -I http://localhost:<FRONTEND_PORT>
 
 # Test API health check through Nginx reverse proxy
-curl http://localhost:80/api/health
+curl http://localhost:<FRONTEND_PORT>/api/health
 ```
 
 ### Step 8: Access UI in Browser
 Open your browser and visit:
-- **Standard HTTP**: `http://167.172.77.230/`
-- **Port 5173 (Backward compatible)**: `http://167.172.77.230:5173/`
+- **Application URL**: `http://<YOUR_SERVER_HOST>:<FRONTEND_PORT>/`
