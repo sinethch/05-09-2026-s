@@ -1,0 +1,15 @@
+{
+  "name": "ecommerce-mern-devops",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DevOps tooling, Husky git hooks, and monorepo verification scripts",
+  "scripts": {
+    "prepare": "husky",
+    "test:backend": "npm test --prefix backend",
+    "build:frontend": "npm run build --prefix frontend",
+    "check:all": "npm run test:backend && npm run build:frontend"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
+}
